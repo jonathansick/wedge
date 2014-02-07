@@ -11,6 +11,7 @@ __pycache__
 
 # Other generated files
 */version.py
+wedge/cython_version.py
 
 # Sphinx
 _build

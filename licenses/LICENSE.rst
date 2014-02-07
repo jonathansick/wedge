@@ -1,4 +1,4 @@
-Copyright (c) 2011, Astropy Developers
+Copyright (c) 2014, Jonathan Sick
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

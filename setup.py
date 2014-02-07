@@ -21,11 +21,11 @@ from astropy.setup_helpers import (register_commands, adjust_compiler,
 from astropy.version_helpers import get_git_devstr, generate_version_py
 
 # Set affiliated package-specific settings
-PACKAGENAME = 'packagename'
-DESCRIPTION = 'Astropy affiliated package'
+PACKAGENAME = 'wedge'
+DESCRIPTION = 'Make wedge profile cuts of galaxies.'
 LONG_DESCRIPTION = ''
-AUTHOR = ''
-AUTHOR_EMAIL = ''
+AUTHOR = 'Jonathan Sick'
+AUTHOR_EMAIL = 'jonathansick@mac.com'
 LICENSE = 'BSD'
 URL = 'http://astropy.org'
 
@@ -99,7 +99,7 @@ setup(name=PACKAGENAME,
       version=VERSION,
       description=DESCRIPTION,
       scripts=scripts,
-      requires=['astropy'],
+      requires=['astropy', 'numpy', 'moastro'],
       install_requires=['astropy'],
       provides=[PACKAGENAME],
       author=AUTHOR,
