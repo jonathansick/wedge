@@ -10,7 +10,9 @@ and in turn, uses Astromatic's Swarp to carry our the heavy pixel lifting.
 
 import math
 
-from skyoffset.resample import MosaicResampler
+import numpy as np
+import astropy.io.fits as fits
+# from skyoffset.resample import MosaicResampler
 
 
 def resample_images(image_paths, pa, radec_origin, pixel_scale, work_dir,
@@ -145,3 +147,21 @@ class TargetWCS(object):
         1-based, as is the FITS standard.
         """
         return int(math.ceil(float(n) / 2.))
+
+    def write_fits(self, output_path):
+        """Write the WCS to a FITS file, saved to `output_path`.
+
+        The idea is for Swarp to use this FITS file as a target to resample
+        other images into.
+        
+        Parameters
+        ----------
+        output_path : str
+            Path where the blank FITS with WCS will be written.
+        """
+        n = np.zeros((self._wcs_fields['NAXIS2'], self._wcs_fields['NAXIS1']),
+                dtype=np.float)
+        hdu = fits.PrimaryHDU(n)
+        for k, v in self._wcs_fields.iteritems():
+            hdu.header.set(k, v)
+        hdu.writeto(output_path, clobber=True)
