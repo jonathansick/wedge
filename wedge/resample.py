@@ -9,6 +9,7 @@ and in turn, uses Astromatic's Swarp to carry our the heavy pixel lifting.
 """
 
 import math
+import os
 
 import numpy as np
 import astropy.io.fits as fits
@@ -49,6 +50,13 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
         List of paths (`str`) to FITS flag maps that will be resampled.
         Pixels with a value of 1 in the flag maps will be set to NaN.
     """
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+    target_wcs = TargetWCS(radec_origin, pixel_scale, pa,
+            (wedge_length, wedge_height))
+    target_fits_path = os.path.join(work_dir, "resample_target.fits")
+    target_wcs.write_fits(target_fits_path)
+
     if swarp_configs:
         swarp_configs = dict(swarp_configs)
     else:
@@ -62,16 +70,12 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
         "PIXEL_SCALE": "{:.2f}".format(pixel_scale)})
 
     # Set the moasaic center
-    # FIXME will actually *not* the center; need to compute offset
-    # Or, always make the origin the center so that dual profiles
-    # can be build simultaneously to test symmetry?
     swarp_configs['CENTER_TYPE'] = 'MANUAL'
     swarp_configs['CENTER'] = "{:.10f},{:10f}".format(*radec_origin)
 
     # Set the mosaic image dimensions
-    # FIXME
-    nx, ny = 1, 1
-    swarp_configs['IMAGE SIZE'] = "{:d},{:d}".format(nx, ny)
+    swarp_configs['IMAGE SIZE'] = "{:d},{:d}".format(
+            target_wcs['NAXIS1'], target_wcs['NAXIS2'])
 
 
 class TargetWCS(object):
@@ -99,6 +103,9 @@ class TargetWCS(object):
         self._wedge_length = pixel_scale * wedge_box[0]
         self._wedge_height = pixel_scale * wedge_box[1]
         self._wcs_fields = self._compute_wcs()
+
+    def __getitem__(self, k):
+        return self._wcs_fields[k]
 
     def _compute_wcs(self):
         """Compute the target world coordinate system.
