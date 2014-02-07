@@ -15,8 +15,8 @@ import astropy.io.fits as fits
 # from skyoffset.resample import MosaicResampler
 
 
-def resample_images(image_paths, pa, radec_origin, pixel_scale, work_dir,
-        swarp_configs=None,
+def resample_images(image_paths, radec_origin, pixel_scale, pa,
+        wedge_length, wedge_height, work_dir, swarp_configs=None,
         weight_paths=None, noise_paths=None, flag_paths=None):
     """Resample a set of images so that the major axis of the profile
     wedge is along the positive x-axis.
@@ -25,13 +25,17 @@ def resample_images(image_paths, pa, radec_origin, pixel_scale, work_dir,
     ----------
     image_paths : list
         List of paths (`str`) to FITS images that will be resampled.
-    pa : float
-        Position angle of the wedge, in degrees.
     radec_origin : tuple
         A tuple of (RA, Dec), giving the location of the wedge origin (i.e.
         the galaxy center).
     pixel_scale : float
         Pixel scale, arcseconds per pixel.
+    pa : float
+        Position angle of the wedge, in degrees.
+    wedge_length : float
+        Length of the wedge, in arcseconds.
+    wedge_height : float
+        Maximum height of the wedge, in arcseconds.
     work_dir : str
         Directory where resampled images will be saved.
     swarp_configs : dict
