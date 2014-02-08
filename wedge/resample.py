@@ -13,7 +13,7 @@ import os
 
 import numpy as np
 import astropy.io.fits as fits
-# from skyoffset.resample import MosaicResampler
+from skyoffset.resample import MosaicResampler
 
 
 def resample_images(image_paths, radec_origin, pixel_scale, pa,
@@ -49,6 +49,15 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     flag_paths : list
         List of paths (`str`) to FITS flag maps that will be resampled.
         Pixels with a value of 1 in the flag maps will be set to NaN.
+
+    Returns
+    -------
+    image_paths : list
+        Paths to wedge-ready images.
+    weight_paths : list
+        Paths to wedge-ready weight maps, if they were given as inputs.
+    noise_paths : list
+        Paths to wedge_ready noise maps, if they were given as inputs.
     """
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
@@ -76,6 +85,26 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     # Set the mosaic image dimensions
     swarp_configs['IMAGE SIZE'] = "{:d},{:d}".format(
             target_wcs['NAXIS1'], target_wcs['NAXIS2'])
+
+    resampler = MosaicResampler(work_dir, mosaicdb=None,
+            target_fits=target_fits_path)
+    resampler.add_images_by_path(image_paths, weight_paths=weight_paths,
+            noise_paths=noise_paths)
+    resamp_docs = resampler.resample("wedge", pix_scale=pixel_scale,
+            swarp_configs=swarp_configs)
+
+    wedge_image_paths = [doc['image_path'] for doc in resamp_docs]
+    if weight_paths:
+        wedge_weight_paths = [doc['weight_path'] for doc in resamp_docs]
+    if noise_paths:
+        wedge_noise_paths = [doc['noise_path'] for doc in resamp_docs]
+
+    if weight_paths and noise_paths:
+        return wedge_image_paths, wedge_weight_paths, wedge_noise_paths
+    if weight_paths and not noise_paths:
+        return wedge_image_paths, wedge_weight_paths
+    if not weight_paths and noise_paths:
+        return wedge_image_paths, wedge_noise_paths
 
 
 class TargetWCS(object):
