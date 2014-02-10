@@ -75,31 +75,35 @@ class WedgeBins(object):
 
     def _define_bins(self):
         """Create a list of bins, oriented radially."""
+        bins = []
         pix_scale = np.abs(self._header['CD1_1']) * 3600.  # arcseconds per px
         nx = self._header['NAXIS1']
         ny = self._header['NAXIS2']
         mid_ix = self._middle_index(nx)
         mid_iy = self._middle_index(ny)
         # Make the central bin, a square around central pixel
-        self._bins.append(self._make_center_bin(mid_ix, mid_iy, pix_scale))
+        bins.append(self._make_center_bin(mid_ix, mid_iy, pix_scale))
         # Make remainder of bins
         n = 1
         while True:
             if self._pos_x:
-                next_bin = self._make_rightward_bin(n, self._bins[n - 1],
+                next_bin = self._make_rightward_bin(n, bins[n - 1],
                     mid_iy, pix_scale)
             else:
-                next_bin = self._make_leftward_bin(n, self._bins[n - 1],
+                next_bin = self._make_leftward_bin(n, bins[n - 1],
                     mid_iy, pix_scale)
             if next_bin is None:
                 break
             else:
-                self._bins.append(next_bin)
+                bins.append(next_bin)
                 n += 1
+        return bins
 
     def _middle_index(self, n):
-        """Returns index of pixel in middle, assuming odd integer n."""
-        return int(math.floor(n / 2.))
+        """Returns index of pixel in middle, assuming odd integer n.
+        1-based for python conventions.
+        """
+        return int(math.floor(float(n) / 2.))
 
     def _compute_size(self, n):
         """Compute side-length (pixels) of the logarithmically-growing bin."""
@@ -129,7 +133,7 @@ class WedgeBins(object):
     def _make_rightward_bin(self, n, prev, mid_iy, pix_scale):
         """Make the next bin, extending rightward (positive x)."""
         s = self._compute_size(n)
-        ylim = self._compute_ylim(s)
+        ylim = self._compute_ylim(s, mid_iy)
         x1 = max(prev['xlim'])
         x2 = x1 + s
         return self._make_bin_doc([x1, x2], ylim, pix_scale)
@@ -137,7 +141,7 @@ class WedgeBins(object):
     def _make_leftward_bin(self, n, prev, mid_iy, pix_scale):
         """Make the next bin, extending leftward (negative x)."""
         s = self._compute_size(n)
-        ylim = self._compute_ylim(s)
+        ylim = self._compute_ylim(s, mid_iy)
         x2 = min(prev['xlim'])
         x1 = x2 - s
         return self._make_bin_doc([x1, x2], ylim, pix_scale)
@@ -168,3 +172,18 @@ class WedgeBins(object):
         d = {"xlim": xlim, "ylim": ylim, "area": A,
                 "r_outer": r_outer, "r_inner": r_inner, "r_mid": r_mid}
         return d
+
+
+def plot_bins_in_ax(ax, image, wedge, imshow_args=None, box_args=None):
+    """Plot the wedge footprints on an image that has been resampled."""
+    import matplotlib as mpl
+    ax.imshow(image, **imshow_args)
+    verts = []
+    for b in wedge:
+        xlim = b['xlim']
+        ylim = b['ylim']
+        poly = [(xlim[0], ylim[0]), (xlim[0], ylim[1]), (xlim[1], ylim[1]),
+                (xlim[1], ylim[0])]
+        verts.append(poly)
+    col = mpl.collections.PolyCollection(verts, **box_args)
+    ax.add_collection(col)
