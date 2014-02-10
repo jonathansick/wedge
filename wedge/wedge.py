@@ -36,6 +36,16 @@ class WedgeBins(object):
         self._N = N
         self._pos_x = pos_x
         self._bins = self._define_bins()
+        self._index = 0
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self._index == len(self._bins):
+            raise StopIteration
+        self._index += 1
+        return self._bins[self._index - 1]
 
     def _define_bins(self):
         """Create a list of bins, oriented radially."""
