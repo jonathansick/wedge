@@ -8,6 +8,28 @@ import math
 import numpy as np
 
 
+def measure_image(fits, wedge):
+    """Measure an image with the given wedge definition."""
+    dt = [('area', np.float), ('R', np.float), ('r_inner', np.float),
+            ('r_outer', np.float), ('median', np.float), ('sigma', np.float)]
+    profile = np.zeros(wedge.n_bins, dtype=np.dtype(dt))
+    for i, b in enumerate(wedge):
+        x1, x2 = b['xlim']
+        y1, y2 = b['ylim']
+        pixels = fits[0].data[y1:y2, x1:x2].ravel()
+        good = np.where(np.isfinite(pixels))[0]
+        pixels = pixels[good]
+        median = np.median(pixels)
+        sigma = np.std(median)
+        profile[i]['area'] = b['A']
+        profile[i]['R'] = b['r_mid']
+        profile[i]['r_inner'] = b['r_inner']
+        profile[i]['r_outer'] = b['r_outer']
+        profile[i]['median'] = median
+        profile[i]['sigma'] = sigma
+    return profile
+
+
 class WedgeBins(object):
     """Defines a wedge binning pattern, assuming the image is aligned with
     the wedge axis.
@@ -46,6 +68,10 @@ class WedgeBins(object):
             raise StopIteration
         self._index += 1
         return self._bins[self._index - 1]
+
+    @property
+    def n_bins(self):
+        return len(self._bins)
 
     def _define_bins(self):
         """Create a list of bins, oriented radially."""
