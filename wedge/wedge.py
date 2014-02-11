@@ -21,7 +21,7 @@ def measure_image(fits, wedge):
         pixels = pixels[good]
         median = np.median(pixels)
         sigma = np.std(median)
-        profile[i]['area'] = b['A']
+        profile[i]['area'] = b['area']
         profile[i]['R'] = b['r_mid']
         profile[i]['r_inner'] = b['r_inner']
         profile[i]['r_outer'] = b['r_outer']
@@ -65,6 +65,7 @@ class WedgeBins(object):
 
     def next(self):
         if self._index == len(self._bins):
+            self._index = 0
             raise StopIteration
         self._index += 1
         return self._bins[self._index - 1]
@@ -88,10 +89,10 @@ class WedgeBins(object):
         while True:
             if self._pos_x:
                 next_bin = self._make_rightward_bin(n, bins[n - 1],
-                    mid_iy, pix_scale)
+                    mid_ix, mid_iy, pix_scale)
             else:
                 next_bin = self._make_leftward_bin(n, bins[n - 1],
-                    mid_iy, pix_scale)
+                    mid_ix, mid_iy, pix_scale)
             if next_bin is None:
                 break
             else:
@@ -128,25 +129,26 @@ class WedgeBins(object):
         x1 = mid_ix - int((self._p - 1) / 2.)
         x2 = mid_ix + int((self._p - 1) / 2.) + 1
         ylim = self._compute_ylim(self._p, mid_iy)
-        return self._make_bin_doc([x1, x2], ylim, pix_scale, center=True)
+        return self._make_bin_doc([x1, x2], ylim, mid_ix, pix_scale,
+                center=True)
 
-    def _make_rightward_bin(self, n, prev, mid_iy, pix_scale):
+    def _make_rightward_bin(self, n, prev, mid_ix, mid_iy, pix_scale):
         """Make the next bin, extending rightward (positive x)."""
         s = self._compute_size(n)
         ylim = self._compute_ylim(s, mid_iy)
         x1 = max(prev['xlim'])
         x2 = x1 + s
-        return self._make_bin_doc([x1, x2], ylim, pix_scale)
+        return self._make_bin_doc([x1, x2], ylim, mid_ix, pix_scale)
 
-    def _make_leftward_bin(self, n, prev, mid_iy, pix_scale):
+    def _make_leftward_bin(self, n, prev, mid_ix, mid_iy, pix_scale):
         """Make the next bin, extending leftward (negative x)."""
         s = self._compute_size(n)
         ylim = self._compute_ylim(s, mid_iy)
         x2 = min(prev['xlim'])
         x1 = x2 - s
-        return self._make_bin_doc([x1, x2], ylim, pix_scale)
+        return self._make_bin_doc([x1, x2], ylim, mid_ix, pix_scale)
     
-    def _make_bin_doc(self, xlim, ylim, pix_scale, center=False):
+    def _make_bin_doc(self, xlim, ylim, mid_ix, pix_scale, center=False):
         """Make a dictionary defining the properties of this bin."""
         # Discard bins entirely outside bounds
         if xlim[1] <= 0:
@@ -163,11 +165,11 @@ class WedgeBins(object):
         if ylim[1] > self._header['NAXIS2']:
             ylim[1] = self._header['NAXIS2']
         A = (xlim[1] - 1 - xlim[0]) * (ylim[1] - 1 - ylim[0]) * pix_scale
-        r_outer = (xlim[1] - 1.) * pix_scale
+        r_outer = (xlim[1] - mid_ix - 1.) * pix_scale
         if center:
             r_inner = 0.
         else:
-            r_inner = xlim[0] * pix_scale
+            r_inner = (xlim[0] - mid_ix) * pix_scale
         r_mid = 0.5 * (r_inner + r_outer)
         d = {"xlim": xlim, "ylim": ylim, "area": A,
                 "r_outer": r_outer, "r_inner": r_inner, "r_mid": r_mid}
