@@ -185,7 +185,7 @@ class WedgeBins(object):
             ylim[0] = 0
         if ylim[1] > self._header['NAXIS2']:
             ylim[1] = self._header['NAXIS2']
-        A = (xlim[1] - 1 - xlim[0]) * (ylim[1] - 1 - ylim[0]) * pix_scale
+        A = (xlim[1] - 1 - xlim[0]) * (ylim[1] - 1 - ylim[0]) * pix_scale ** 2.
         r_outer = (xlim[1] - mid_ix - 1.) * pix_scale
         if center:
             r_inner = 0.
