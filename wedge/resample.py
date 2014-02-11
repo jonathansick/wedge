@@ -13,7 +13,7 @@ import os
 
 import numpy as np
 import astropy.io.fits as fits
-from skyoffset.resample import MosaicResampler
+from skyoffset.resampler import MosaicResampler
 
 
 def resample_images(image_paths, radec_origin, pixel_scale, pa,
@@ -75,16 +75,16 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     swarp_configs['PROJECTION_TYPE'] = 'TAN'
     
     # Set the pixel scale
-    swarp_configs.update({"PIXELSCALE_TYPE": "MANUAL",
-        "PIXEL_SCALE": "{:.2f}".format(pixel_scale)})
+    # swarp_configs.update({"PIXELSCALE_TYPE": "MANUAL",
+    #     "PIXEL_SCALE": "{:.2f}".format(pixel_scale)})
 
-    # Set the moasaic center
-    swarp_configs['CENTER_TYPE'] = 'MANUAL'
-    swarp_configs['CENTER'] = "{:.10f},{:10f}".format(*radec_origin)
+    # # Set the moasaic center
+    # swarp_configs['CENTER_TYPE'] = 'MANUAL'
+    # swarp_configs['CENTER'] = "%.10f,%.10f" % radec_origin
 
-    # Set the mosaic image dimensions
-    swarp_configs['IMAGE SIZE'] = "{:d},{:d}".format(
-            target_wcs['NAXIS1'], target_wcs['NAXIS2'])
+    # # Set the mosaic image dimensions
+    # swarp_configs['IMAGE_SIZE'] = "{:d},{:d}".format(
+    #     target_wcs['NAXIS1'], target_wcs['NAXIS2'])
 
     resampler = MosaicResampler(work_dir, mosaicdb=None,
             target_fits=target_fits_path)
@@ -129,8 +129,8 @@ class TargetWCS(object):
         self._radec_origin = radec_origin
         self._pixel_scale = float(pixel_scale)
         self._pa_deg = float(pa)
-        self._wedge_length = pixel_scale * wedge_box[0]
-        self._wedge_height = pixel_scale * wedge_box[1]
+        self._wedge_length = int(wedge_box[0] / pixel_scale)
+        self._wedge_height = int(wedge_box[1] / pixel_scale)
         self._wcs_fields = self._compute_wcs()
 
     def __getitem__(self, k):
@@ -154,10 +154,10 @@ class TargetWCS(object):
         CRVAL2 = self._radec_origin[1]  # Dec at center
 
         pa = self._pa_deg * math.pi / 180.
-        s = self.pixel_scale / 3600.
-        CD1_1 = s * math.cos(pa)
-        CD2_1 = -s * math.sin(pa)
+        s = self._pixel_scale / 3600.
+        CD1_1 = -s * math.cos(pa)
         CD1_2 = s * math.sin(pa)
+        CD2_1 = s * math.sin(pa)
         CD2_2 = s * math.cos(pa)
 
         return {"NAXIS": 2,
