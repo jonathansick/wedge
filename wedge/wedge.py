@@ -8,23 +8,44 @@ import math
 import numpy as np
 
 
-def measure_image(fits, wedge):
-    """Measure an image with the given wedge definition."""
-    dt = [('area', np.float), ('R', np.float), ('r_inner', np.float),
-            ('r_outer', np.float), ('median', np.float), ('sigma', np.float)]
+def measure_image(image, wedge):
+    """Measure an image with the given wedge definition.
+
+    Parameters
+    ----------
+    image : ndarray
+        The image to measure. It should be consistent with the image shape
+        expected by the :class:`WedgeBins` definition.
+    wedge : :class:`WedgeBins`
+        The binning defition.
+    
+    Returns
+    -------
+    profile : ndarray
+        A `numpy` structured array with the following fields:
+
+        - `area`, the area is square arcseconds
+        - `R`, the radial distance at the bin mid-point, in arcseconds
+        - `R_inner`, the radial distance at the inside edge, in arcseconds
+        - `R_outer`, the radial distance at the outside edge, in arcseconds
+        - `median`, the median pixel intensity in the bin
+        - `sigma`, the standard deviation of pixel intensities
+    """
+    dt = [('area', np.float), ('R', np.float), ('R_inner', np.float),
+            ('R_outer', np.float), ('median', np.float), ('sigma', np.float)]
     profile = np.zeros(wedge.n_bins, dtype=np.dtype(dt))
     for i, b in enumerate(wedge):
         x1, x2 = b['xlim']
         y1, y2 = b['ylim']
-        pixels = fits[0].data[y1:y2, x1:x2].ravel()
+        pixels = image[y1:y2, x1:x2].ravel()
         good = np.where(np.isfinite(pixels))[0]
         pixels = pixels[good]
         median = np.median(pixels)
         sigma = np.std(median)
         profile[i]['area'] = b['area']
         profile[i]['R'] = b['r_mid']
-        profile[i]['r_inner'] = b['r_inner']
-        profile[i]['r_outer'] = b['r_outer']
+        profile[i]['R_inner'] = b['r_inner']
+        profile[i]['R_outer'] = b['r_outer']
         profile[i]['median'] = median
         profile[i]['sigma'] = sigma
     return profile
