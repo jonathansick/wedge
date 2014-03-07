@@ -75,16 +75,16 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     swarp_configs['PROJECTION_TYPE'] = 'TAN'
     
     # Set the pixel scale
-    # swarp_configs.update({"PIXELSCALE_TYPE": "MANUAL",
-    #     "PIXEL_SCALE": "{:.2f}".format(pixel_scale)})
+    swarp_configs.update({"PIXELSCALE_TYPE": "MANUAL",
+        "PIXEL_SCALE": "{:.2f}".format(pixel_scale)})
 
     # # Set the moasaic center
-    # swarp_configs['CENTER_TYPE'] = 'MANUAL'
-    # swarp_configs['CENTER'] = "%.10f,%.10f" % radec_origin
+    swarp_configs['CENTER_TYPE'] = 'MANUAL'
+    swarp_configs['CENTER'] = "%.10f,%.10f" % radec_origin
 
     # # Set the mosaic image dimensions
-    # swarp_configs['IMAGE_SIZE'] = "{:d},{:d}".format(
-    #     target_wcs['NAXIS1'], target_wcs['NAXIS2'])
+    swarp_configs['IMAGE_SIZE'] = "{:d},{:d}".format(
+        target_wcs['NAXIS1'], target_wcs['NAXIS2'])
 
     resampler = MosaicResampler(work_dir, mosaicdb=None,
             target_fits=target_fits_path)
