@@ -153,12 +153,13 @@ class TargetWCS(object):
         CRVAL1 = self._radec_origin[0]  # RA at center
         CRVAL2 = self._radec_origin[1]  # Dec at center
 
-        pa = self._pa_deg * math.pi / 180.
+        theta_deg = -self._pa_deg - 180.
+        theta = theta_deg * math.pi / 180.
         s = self._pixel_scale / 3600.
-        CD1_1 = -s * math.cos(pa)
-        CD1_2 = s * math.sin(pa)
-        CD2_1 = s * math.sin(pa)
-        CD2_2 = s * math.cos(pa)
+        CD1_1 = -s * math.cos(theta)
+        CD1_2 = s * math.sin(theta)
+        CD2_1 = s * math.sin(theta)
+        CD2_2 = s * math.cos(theta)
 
         return {"NAXIS": 2,
                 "RADESYS": 'FK5',
