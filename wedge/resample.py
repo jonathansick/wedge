@@ -90,8 +90,11 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
 
     resampler = MosaicResampler(work_dir, mosaicdb=None,
             target_fits=target_fits_path)
-    resampler.add_images_by_path(image_paths, weight_paths=weight_paths,
-            noise_paths=noise_paths, offset_zp_sigmas=bkg_sigmas)
+    resampler.add_images_by_path(image_paths,
+            weight_paths=weight_paths,
+            noise_paths=noise_paths,
+            flag_paths=flag_paths,
+            offset_zp_sigmas=bkg_sigmas)
     resamp_docs = resampler.resample("wedge", pix_scale=pixel_scale,
             swarp_configs=swarp_configs)
 
