@@ -157,7 +157,8 @@ class TargetWCS(object):
         CRVAL1 = self._radec_origin[0]  # RA at center
         CRVAL2 = self._radec_origin[1]  # Dec at center
 
-        theta_deg = -self._pa_deg - 180.
+        # rotation so that the principle axis is along the +x axis
+        theta_deg = self._pa_deg + 90.
         theta = theta_deg * math.pi / 180.
         s = self._pixel_scale / 3600.
         CD1_1 = -s * math.cos(theta)
