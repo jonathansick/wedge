@@ -18,7 +18,7 @@ from skyoffset.resampler import MosaicResampler
 
 def resample_images(image_paths, radec_origin, pixel_scale, pa,
         wedge_length, wedge_height, work_dir, swarp_configs=None,
-        weight_paths=None, noise_paths=None, flag_paths=None):
+        weight_paths=None, noise_paths=None, flag_paths=None, bkg_sigmas=None):
     """Resample a set of images so that the major axis of the profile
     wedge is along the positive x-axis.
 
@@ -49,6 +49,8 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     flag_paths : list
         List of paths (`str`) to FITS flag maps that will be resampled.
         Pixels with a value of 1 in the flag maps will be set to NaN.
+    bkg_sigmas : list
+        List of background uncertainties (scalar floats) in pixel units.
 
     Returns
     -------
@@ -89,22 +91,24 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     resampler = MosaicResampler(work_dir, mosaicdb=None,
             target_fits=target_fits_path)
     resampler.add_images_by_path(image_paths, weight_paths=weight_paths,
-            noise_paths=noise_paths)
+            noise_paths=noise_paths, offset_zp_sigmas=bkg_sigmas)
     resamp_docs = resampler.resample("wedge", pix_scale=pixel_scale,
             swarp_configs=swarp_configs)
 
     wedge_image_paths = [doc['image_path'] for doc in resamp_docs]
+    outputs = [wedge_image_paths]
     if weight_paths:
         wedge_weight_paths = [doc['weight_path'] for doc in resamp_docs]
+        outputs.append(wedge_weight_paths)
     if noise_paths:
         wedge_noise_paths = [doc['noise_path'] for doc in resamp_docs]
+        outputs.append(wedge_noise_paths)
+    if bkg_sigmas:
+        resamp_background_sigmas = [doc['offset_zp_sigma']
+                for doc in resamp_docs]
+        outputs.append(resamp_background_sigmas)
 
-    if weight_paths and noise_paths:
-        return wedge_image_paths, wedge_weight_paths, wedge_noise_paths
-    if weight_paths and not noise_paths:
-        return wedge_image_paths, wedge_weight_paths
-    if not weight_paths and noise_paths:
-        return wedge_image_paths, wedge_noise_paths
+    return outputs
 
 
 class TargetWCS(object):
