@@ -41,7 +41,7 @@ def measure_image(image, wedge):
         good = np.where(np.isfinite(pixels))[0]
         pixels = pixels[good]
         median = np.median(pixels)
-        sigma = np.std(median)
+        sigma = np.std(pixels)
         profile[i]['area'] = b['area']
         profile[i]['R'] = b['r_mid']
         profile[i]['R_inner'] = b['r_inner']
