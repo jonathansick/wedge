@@ -98,7 +98,8 @@ class WedgeBins(object):
     def _define_bins(self):
         """Create a list of bins, oriented radially."""
         bins = []
-        pix_scale = np.abs(self._header['CD1_1']) * 3600.  # arcseconds per px
+        pix_scale = np.sqrt(self._header['CD1_1'] ** 2.
+                + self._header['CD1_2'] ** 2.) * 3600.
         nx = self._header['NAXIS1']
         ny = self._header['NAXIS2']
         mid_ix = self._middle_index(nx)
