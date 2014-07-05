@@ -98,7 +98,7 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     resamp_docs = resampler.resample("wedge", pix_scale=pixel_scale,
             swarp_configs=swarp_configs)
 
-    set_unweighted_pixels_to_nan(resamp_docs)
+    set_blank_pixels_to_nan(resamp_docs)
 
     wedge_image_paths = [doc['image_path'] for doc in resamp_docs]
     outputs = [wedge_image_paths]
@@ -116,19 +116,16 @@ def resample_images(image_paths, radec_origin, pixel_scale, pa,
     return outputs
 
 
-def set_unweighted_pixels_to_nan(docs):
+def set_blank_pixels_to_nan(docs):
     """After processing by skyoffset's MosaicResample, this function sets
-    unweighted resampled pixels to NaN."""
+    pixels with a value of 0 to NaN.
+    """
     for doc in docs:
-        if 'weight_path' in doc:
-            wpath = doc['weight_path']
-            impath = doc['image_path']
-            wfits = fits.open(wpath)
-            imfits = fits.open(impath)
-            imfits[0].data[wfits[0].data == 0.] = np.nan
-            imfits.writeto(doc['image_path'], clobber=True)
-            wfits.close()
-            imfits.close()
+        impath = doc['image_path']
+        imfits = fits.open(impath)
+        imfits[0].data[imfits[0].data == 0.] = np.nan
+        imfits.writeto(doc['image_path'], clobber=True)
+        imfits.close()
 
 
 class TargetWCS(object):
