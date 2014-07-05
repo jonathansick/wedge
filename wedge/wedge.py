@@ -6,9 +6,10 @@ Module for defining a wedge binning.
 
 import math
 import numpy as np
+from astropy.stats import sigma_clip
 
 
-def measure_image(image, wedge):
+def measure_image(image, wedge, clip_sigma=None):
     """Measure an image with the given wedge definition.
 
     Parameters
@@ -18,7 +19,10 @@ def measure_image(image, wedge):
         expected by the :class:`WedgeBins` definition.
     wedge : :class:`WedgeBins`
         The binning defition.
-    
+    clip_sigma : float
+        If set, this is the Gaussian standard deviation to apply sigma-clipping
+        against.
+
     Returns
     -------
     profile : ndarray
@@ -32,7 +36,7 @@ def measure_image(image, wedge):
         - `sigma`, the standard deviation of pixel intensities
     """
     dt = [('area', np.float), ('R', np.float), ('R_inner', np.float),
-            ('R_outer', np.float), ('median', np.float), ('sigma', np.float)]
+          ('R_outer', np.float), ('median', np.float), ('sigma', np.float)]
     profile = np.zeros(wedge.n_bins, dtype=np.dtype(dt))
     for i, b in enumerate(wedge):
         x1, x2 = b['xlim']
@@ -40,8 +44,16 @@ def measure_image(image, wedge):
         pixels = image[y1:y2, x1:x2].ravel()
         good = np.where(np.isfinite(pixels))[0]
         pixels = pixels[good]
-        median = np.median(pixels)
-        sigma = np.std(pixels)
+        if clip_sigma is not None:
+            # Perform sigma clipping
+            filtered = sigma_clip(pixels, sig=clip_sigma, iters=1)
+            good_only = filtered.data[~filtered.mask]
+            median = np.median(good_only)
+            sigma = np.std(good_only)
+        else:
+            # No sigma clipping
+            median = np.median(pixels)
+            sigma = np.std(pixels)
         profile[i]['area'] = b['area']
         profile[i]['R'] = b['r_mid']
         profile[i]['R_inner'] = b['r_inner']
@@ -54,7 +66,7 @@ def measure_image(image, wedge):
 class WedgeBins(object):
     """Defines a wedge binning pattern, assuming the image is aligned with
     the wedge axis.
-    
+
     The bins are square, and defined such that
 
     .. math::
@@ -99,7 +111,7 @@ class WedgeBins(object):
         """Create a list of bins, oriented radially."""
         bins = []
         pix_scale = np.sqrt(self._header['CD1_1'] ** 2.
-                + self._header['CD1_2'] ** 2.) * 3600.
+                            + self._header['CD1_2'] ** 2.) * 3600.
         nx = self._header['NAXIS1']
         ny = self._header['NAXIS2']
         mid_ix = self._middle_index(nx)
@@ -110,10 +122,12 @@ class WedgeBins(object):
         n = 1
         while True:
             if self._pos_x:
-                next_bin = self._make_rightward_bin(n, bins[n - 1],
+                next_bin = self._make_rightward_bin(
+                    n, bins[n - 1],
                     mid_ix, mid_iy, pix_scale)
             else:
-                next_bin = self._make_leftward_bin(n, bins[n - 1],
+                next_bin = self._make_leftward_bin(
+                    n, bins[n - 1],
                     mid_ix, mid_iy, pix_scale)
             if next_bin is None:
                 break
@@ -151,8 +165,9 @@ class WedgeBins(object):
         x1 = mid_ix - int((self._p - 1) / 2.)
         x2 = mid_ix + int((self._p - 1) / 2.) + 1
         ylim = self._compute_ylim(self._p, mid_iy)
-        return self._make_bin_doc([x1, x2], ylim, mid_ix, pix_scale,
-                center=True)
+        return self._make_bin_doc(
+            [x1, x2], ylim, mid_ix, pix_scale,
+            center=True)
 
     def _make_rightward_bin(self, n, prev, mid_ix, mid_iy, pix_scale):
         """Make the next bin, extending rightward (positive x)."""
@@ -169,7 +184,7 @@ class WedgeBins(object):
         x2 = min(prev['xlim'])
         x1 = x2 - s
         return self._make_bin_doc([x1, x2], ylim, mid_ix, pix_scale)
-    
+
     def _make_bin_doc(self, xlim, ylim, mid_ix, pix_scale, center=False):
         """Make a dictionary defining the properties of this bin."""
         # Discard bins entirely outside bounds
@@ -194,7 +209,7 @@ class WedgeBins(object):
             r_inner = (xlim[0] - mid_ix) * pix_scale
         r_mid = 0.5 * (r_inner + r_outer)
         d = {"xlim": xlim, "ylim": ylim, "area": A,
-                "r_outer": r_outer, "r_inner": r_inner, "r_mid": r_mid}
+             "r_outer": r_outer, "r_inner": r_inner, "r_mid": r_mid}
         return d
 
 
