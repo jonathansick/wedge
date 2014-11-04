@@ -7,7 +7,7 @@ cover the entire galaxy disk.
 2014-11-03 - Created by Jonathan Sick
 """
 
-import astropy.io.fits as fits
+# import astropy.io.fits as fits
 from astropy.wcs import WCS
 from astropy.coordinates import Distance, Angle, SkyCoord
 from astropy import units as u
@@ -26,6 +26,9 @@ class MultiWedge(object):
     def segment(self, coord0, d0, incl0, pa0, pa_delta, radial_grid):
         """Segment galaxy image into wedges of `delta` opening angle.
         """
+        self._map_pixel_coordinates(coord0, d0, incl0, pa0)
+
+    def _map_pixel_coordinates(self, coord0, d0, incl0, pa0):
         shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS2'])
         self.seg_image = -1. * np.ones(shape, dtype=np.int)
         yindices, xindices = np.mgrid[0:shape[0], 0:shape[1]]
@@ -33,31 +36,13 @@ class MultiWedge(object):
         x_indices_flat = xindices.flatten()
         ra, dec = self.ref_wcs.all_pix2world(x_indices_flat, y_indices_flat, 0)
         coords = SkyCoord(ra, dec, "icrs", unit="deg")
-        print "Made pixel sky coords"
-        pixel_R, pixel_PA, xp, yp, ypp, phi = self.correct_rgc(coords,
-                                                               coord0,
-                                                               pa0,
-                                                               incl0,
-                                                               d0)
-        print "Finish correct_rgc"
-        image_R = pixel_R.kpc.reshape(*shape)
-        print "Made PA image"
-        image_PA = pixel_PA.rad.reshape(*shape)
-        print "Made PA image"
-        fits.writeto("_radius_image.fits", image_R, clobber=True)
-        fits.writeto("_pa_image.fits", image_PA, clobber=True)
-
-        image_xp = xp.reshape(*shape)
-        image_yp = yp.reshape(*shape)
-        image_ypp = ypp.reshape(*shape)
-        image_phi = phi.deg.reshape(*shape)
-        fits.writeto("_xp_image.fits", image_xp, clobber=True)
-        fits.writeto("_yp_image.fits", image_yp, clobber=True)
-        fits.writeto("_ypp_image.fits", image_ypp, clobber=True)
-        fits.writeto("_phi_image.fits", image_phi, clobber=True)
-
-        fits.writeto("_ra_image.fits", ra.reshape(*shape), clobber=True)
-        fits.writeto("_dec_image.fits", dec.reshape(*shape), clobber=True)
+        pixel_R, pixel_PA = self.correct_rgc(coords,
+                                             coord0,
+                                             pa0,
+                                             incl0,
+                                             d0)
+        self.image_R = pixel_R.kpc.reshape(*shape)
+        self.image_PA = pixel_PA.rad.reshape(*shape)
 
     @staticmethod
     def correct_rgc(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
@@ -112,4 +97,4 @@ class MultiWedge(object):
         s = np.where(obj_phi < 0.)[0]
         obj_phi[s] = Angle(2. * np.pi, unit=u.rad) + obj_phi[s]
 
-        return obj_dist, obj_phi, xp, yp, ypp, phi
+        return obj_dist, obj_phi
