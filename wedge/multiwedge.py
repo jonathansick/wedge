@@ -106,10 +106,10 @@ class MultiWedge(object):
         obj_dist = Distance(Angle(obj_radius, unit=u.arcmin).radian * glx_dist,
                             unit=glx_dist.unit)
 
-        # Computing PA in disk (unused)
-        obj_phi = Angle(np.arctan2(ypp, xp), unit=u.rad)
-        # TODO Zero out very small angles, i.e.
-        # if np.abs(Angle(xp, unit=u.arcmin)) < Angle(1e-5, unit=u.rad):
-        #     obj_phi = Angle(0.0)
+        # Computing PA in disk
+        # negative sign needed to get correct orientation from major axis
+        obj_phi = Angle(np.arctan2(ypp, -xp), unit=u.rad)
+        s = np.where(obj_phi < 0.)[0]
+        obj_phi[s] = Angle(2. * np.pi, unit=u.rad) + obj_phi[s]
 
         return obj_dist, obj_phi, xp, yp, ypp, phi
