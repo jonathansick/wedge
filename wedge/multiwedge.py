@@ -7,7 +7,7 @@ cover the entire galaxy disk.
 2014-11-03 - Created by Jonathan Sick
 """
 
-# import astropy.io.fits as fits
+import astropy.io.fits as fits
 from astropy.wcs import WCS
 from astropy.coordinates import Distance, Angle, SkyCoord
 from astropy import units as u
@@ -23,10 +23,11 @@ class MultiWedge(object):
         self.seg_image = seg_image
         self.pixel_table = pixel_table
 
-    def segment(self, coord0, d0, incl0, pa0, pa_delta, radial_grid):
+    def segment(self, coord0, d0, incl0, pa0, n_wedges, radial_grid):
         """Segment galaxy image into wedges of `delta` opening angle.
         """
         self._map_pixel_coordinates(coord0, d0, incl0, pa0)
+        self._make_segmap(n_wedges, radial_grid)
 
     def _map_pixel_coordinates(self, coord0, d0, incl0, pa0):
         shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS2'])
@@ -42,7 +43,26 @@ class MultiWedge(object):
                                              incl0,
                                              d0)
         self.image_R = pixel_R.kpc.reshape(*shape)
-        self.image_PA = pixel_PA.rad.reshape(*shape)
+        self.image_PA = pixel_PA.deg.reshape(*shape)
+
+    def _make_segmap(self, n_wedges, radial_grid):
+        pa_delta = 360. / n_wedges
+        pa_grid = np.linspace(- pa_delta / 2., 360. - pa_delta / 2.)
+        pa_segmap = np.zeros(self.image_R.shape, dtype=np.int)
+        pa_segmap.fill(-1)
+        for i in xrange(pa_grid.shape[0]):
+            print i
+            if i == 0:
+                # special case for first wedge
+                inds = np.where((self.image_PA > pa_grid[-1]) |
+                                (self.image_PA <= pa_grid[0]))
+                pa_segmap[inds] = i
+            else:
+                # for non-wrapping wedges
+                inds = np.where((self.image_PA > pa_grid[i - 1]) &
+                                (self.image_PA <= pa_grid[i]))
+                pa_segmap[inds] = i
+        fits.writeto("_pa_segmap.fits", pa_segmap, clobber=True)
 
     @staticmethod
     def correct_rgc(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
