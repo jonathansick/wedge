@@ -16,11 +16,11 @@ import numpy as np
 
 class MultiWedge(object):
     """Segment a galaxy image into multiple wedges."""
-    def __init__(self, ref_header, seg_image=None, pixel_table=None):
+    def __init__(self, ref_header, segmap=None, pixel_table=None):
         super(MultiWedge, self).__init__()
         self.ref_header = ref_header
         self.ref_wcs = WCS(ref_header)
-        self.seg_image = seg_image
+        self.segmap = segmap
         self.pixel_table = pixel_table
 
     def segment(self, coord0, d0, incl0, pa0, n_wedges, radial_grid):
@@ -31,7 +31,6 @@ class MultiWedge(object):
 
     def _map_pixel_coordinates(self, coord0, d0, incl0, pa0):
         shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS2'])
-        self.seg_image = -1. * np.ones(shape, dtype=np.int)
         yindices, xindices = np.mgrid[0:shape[0], 0:shape[1]]
         y_indices_flat = yindices.flatten()
         x_indices_flat = xindices.flatten()
@@ -63,23 +62,44 @@ class MultiWedge(object):
         fits.writeto("_sky_pa_image.fits", self.image_sky_pa, clobber=True)
 
     def _make_segmap(self, n_wedges, radial_grid):
-        pa_delta = 360. / n_wedges
-        pa_grid = np.linspace(- pa_delta / 2., 360. - pa_delta / 2.)
+        pa_delta = 360. / float(n_wedges)
+        print "pa_delta", pa_delta
+        pa_grid = np.linspace(- pa_delta / 2., 360. - 0.5 * pa_delta,
+                              num=n_wedges + 1,
+                              endpoint=True)
+        pa_grid[0] = 360. - pa_delta / 2.
+        print "pa_grid", pa_grid
+        print "len(pa_grid)", len(pa_grid)
         pa_segmap = np.zeros(self.image_r.shape, dtype=np.int)
         pa_segmap.fill(-1)
-        for i in xrange(pa_grid.shape[0]):
+        segmap = np.zeros(self.image_r.shape, dtype=np.int)
+        segmap.fill(-1)
+        for i in xrange(0, pa_grid.shape[0] - 1):
             print i
+            # inds = np.where((self.image_sky_pa > pa_grid[i - 1]) &
+            #                 (self.image_sky_pa <= pa_grid[i]))
+            # pa_segmap[inds] = i
             if i == 0:
                 # special case for first wedge
-                inds = np.where((self.image_pa > pa_grid[-1]) |
-                                (self.image_pa <= pa_grid[0]))
+                inds = np.where((self.image_sky_pa >= pa_grid[0]) |
+                                (self.image_sky_pa < pa_grid[i + 1]))
                 pa_segmap[inds] = i
             else:
                 # for non-wrapping wedges
-                inds = np.where((self.image_pa > pa_grid[i - 1]) &
-                                (self.image_pa <= pa_grid[i]))
+                inds = np.where((self.image_sky_pa >= pa_grid[i]) &
+                                (self.image_sky_pa < pa_grid[i + 1]))
                 pa_segmap[inds] = i
+            r_indices = np.digitize(self.image_r[inds], radial_grid,
+                                    right=False) - 1
+            # r_indices[r_indices == (radial_grid.shape[0] - 1)] = np.nan
+            segmap[inds] = r_indices + radial_grid.shape[0] * i
+        self.segmap = segmap
         fits.writeto("_pa_segmap.fits", pa_segmap, clobber=True)
+        fits.writeto("_segmap.fits", segmap, clobber=True)
+
+        bin_vals = np.unique(segmap.flatten())
+        bin_vals.sort()
+        print bin_vals
 
     @staticmethod
     def correct_rgc(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
