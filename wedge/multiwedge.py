@@ -25,6 +25,9 @@ class MultiWedge(object):
 
     def segment(self, coord0, d0, incl0, pa0, n_wedges, radial_grid):
         """Segment galaxy image into wedges of `delta` opening angle.
+
+        Radial grid should start > 0. Values between 0. and radial_grid[0]
+        are assigned to a central elliptical bin.
         """
         self._map_pixel_coordinates(coord0, d0, incl0, pa0)
         self._make_segmap(n_wedges, radial_grid)
@@ -76,9 +79,6 @@ class MultiWedge(object):
         segmap.fill(-1)
         for i in xrange(0, pa_grid.shape[0] - 1):
             print i
-            # inds = np.where((self.image_sky_pa > pa_grid[i - 1]) &
-            #                 (self.image_sky_pa <= pa_grid[i]))
-            # pa_segmap[inds] = i
             if i == 0:
                 # special case for first wedge
                 inds = np.where((self.image_sky_pa >= pa_grid[0]) |
@@ -89,10 +89,15 @@ class MultiWedge(object):
                 inds = np.where((self.image_sky_pa >= pa_grid[i]) &
                                 (self.image_sky_pa < pa_grid[i + 1]))
                 pa_segmap[inds] = i
+            # Only do PA+radial binning beyond the first bin
             r_indices = np.digitize(self.image_r[inds], radial_grid,
-                                    right=False) - 1
+                                    right=False)
             # r_indices[r_indices == (radial_grid.shape[0] - 1)] = np.nan
             segmap[inds] = r_indices + radial_grid.shape[0] * i
+        # Paint central ellipse
+        central_inds = np.where(self.image_r <= radial_grid[0])
+        print "central_ins", central_inds
+        segmap[central_inds] = 0
         self.segmap = segmap
         fits.writeto("_pa_segmap.fits", pa_segmap, clobber=True)
         fits.writeto("_segmap.fits", segmap, clobber=True)
