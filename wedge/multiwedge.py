@@ -81,17 +81,22 @@ class MultiWedge(object):
             print i
             if i == 0:
                 # special case for first wedge
-                inds = np.where((self.image_sky_pa >= pa_grid[0]) |
-                                (self.image_sky_pa < pa_grid[i + 1]))
+                inds = np.where(((self.image_sky_pa >= pa_grid[0]) |
+                                (self.image_sky_pa < pa_grid[i + 1])) &
+                                (self.image_r < radial_grid[-1]))
                 pa_segmap[inds] = i
+                r_indices = np.digitize(self.image_r[inds], radial_grid,
+                                        right=False)
             else:
                 # for non-wrapping wedges
                 inds = np.where((self.image_sky_pa >= pa_grid[i]) &
-                                (self.image_sky_pa < pa_grid[i + 1]))
+                                (self.image_sky_pa < pa_grid[i + 1]) &
+                                (self.image_r < radial_grid[-1]))
+                # because we lose first bin, subtract one off the indices
+                r_indices = np.digitize(self.image_r[inds], radial_grid,
+                                        right=False) - 1
                 pa_segmap[inds] = i
             # Only do PA+radial binning beyond the first bin
-            r_indices = np.digitize(self.image_r[inds], radial_grid,
-                                    right=False)
             # r_indices[r_indices == (radial_grid.shape[0] - 1)] = np.nan
             segmap[inds] = r_indices + radial_grid.shape[0] * i
         # Paint central ellipse
