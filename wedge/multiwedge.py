@@ -42,25 +42,42 @@ class MultiWedge(object):
                                              pa0,
                                              incl0,
                                              d0)
-        self.image_R = pixel_R.kpc.reshape(*shape)
-        self.image_PA = pixel_PA.deg.reshape(*shape)
+        self.image_r = pixel_R.kpc.reshape(*shape)
+        self.image_pa = pixel_PA.deg.reshape(*shape)
+
+        # Make an image of position angle on sky
+        self.image_sky_pa = -1. * np.ones(shape, dtype=np.float)
+        delta_ra = coords.ra - coord0.ra
+        P = Angle(np.arctan2(np.sin(delta_ra.rad),
+                             np.cos(coord0.dec.rad) * np.tan(coords.dec.rad)
+                             - np.sin(coord0.dec.rad) * np.cos(delta_ra.rad)),
+                  unit=u.rad)
+        # Reset wrap-around range
+        s = np.where(P < 0.)[0]
+        P[s] = Angle(2. * np.pi, unit=u.rad) + P[s]
+        P -= pa0
+        s = np.where(P.deg < 0.)[0]
+        P[s] += Angle(2. * np.pi, unit=u.rad)
+        self.image_sky_pa = P.deg.reshape(*shape)
+
+        fits.writeto("_sky_pa_image.fits", self.image_sky_pa, clobber=True)
 
     def _make_segmap(self, n_wedges, radial_grid):
         pa_delta = 360. / n_wedges
         pa_grid = np.linspace(- pa_delta / 2., 360. - pa_delta / 2.)
-        pa_segmap = np.zeros(self.image_R.shape, dtype=np.int)
+        pa_segmap = np.zeros(self.image_r.shape, dtype=np.int)
         pa_segmap.fill(-1)
         for i in xrange(pa_grid.shape[0]):
             print i
             if i == 0:
                 # special case for first wedge
-                inds = np.where((self.image_PA > pa_grid[-1]) |
-                                (self.image_PA <= pa_grid[0]))
+                inds = np.where((self.image_pa > pa_grid[-1]) |
+                                (self.image_pa <= pa_grid[0]))
                 pa_segmap[inds] = i
             else:
                 # for non-wrapping wedges
-                inds = np.where((self.image_PA > pa_grid[i - 1]) &
-                                (self.image_PA <= pa_grid[i]))
+                inds = np.where((self.image_pa > pa_grid[i - 1]) &
+                                (self.image_pa <= pa_grid[i]))
                 pa_segmap[inds] = i
         fits.writeto("_pa_segmap.fits", pa_segmap, clobber=True)
 
