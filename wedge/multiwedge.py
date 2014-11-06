@@ -146,8 +146,8 @@ class MultiWedge(object):
         assert len(pix_id) == n_pixels
         assert len(pix_area) == n_pixels
 
-        t = Table((pix_id, pix_pa, pix_r_mid, pix_r_inner, pix_r_outer,
-                   pix_area),
+        t = Table((pix_id, wedge_id, pix_pa, pix_r_mid,
+                   pix_r_inner, pix_r_outer, pix_area),
                   names=('ID', 'W_ID', 'PA', "R_kpc", 'R_inner', 'R_outer',
                          'area'))
         self.pixel_table = t
