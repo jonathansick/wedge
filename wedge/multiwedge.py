@@ -70,19 +70,16 @@ class MultiWedge(object):
 
     def _make_segmap(self, n_wedges, radial_grid):
         pa_delta = 360. / float(n_wedges)
-        print "pa_delta", pa_delta
         pa_grid = np.linspace(- pa_delta / 2., 360. - 0.5 * pa_delta,
                               num=n_wedges + 1,
                               endpoint=True)
         pa_grid[0] = 360. - pa_delta / 2.
-        print "pa_grid", pa_grid
-        print "len(pa_grid)", len(pa_grid)
         pa_segmap = np.zeros(self.image_r.shape, dtype=np.int)
         pa_segmap.fill(-1)
         segmap = np.zeros(self.image_r.shape, dtype=np.int)
         segmap.fill(-1)
         for i in xrange(0, pa_grid.shape[0] - 1):
-            print i
+            print "Segmenting PA {0:d}".format(i)
             if i == 0:
                 # special case for first wedge
                 inds = np.where(((self.image_sky_pa >= pa_grid[0]) |
@@ -109,15 +106,11 @@ class MultiWedge(object):
             # segmap[inds] = r_indices + radial_grid.shape[0] * i
         # Paint central ellipse
         central_inds = np.where(self.image_r <= radial_grid[0])
-        print "central_ins", central_inds
         segmap[central_inds] = 0
+
         self.segmap = segmap
         fits.writeto("_pa_segmap.fits", pa_segmap, clobber=True)
         fits.writeto("_segmap.fits", segmap, clobber=True)
-
-        bin_vals = np.unique(segmap.flatten())
-        bin_vals.sort()
-        print bin_vals
 
     def _make_pixel_table(self, n_wedges, radial_grid):
         pa_delta = 360. / float(n_wedges)
@@ -133,6 +126,7 @@ class MultiWedge(object):
 
         # Initialize with central elliptical pixel
         pix_id = [0]
+        wedge_id = [0]
         pix_pa = [0.]
         pix_r_inner = [0.]
         pix_r_outer = [radial_grid[0]]
@@ -143,18 +137,19 @@ class MultiWedge(object):
             for k in xrange(len(radial_grid) - 1):
                 i += 1
                 pix_id.append(i)
+                wedge_id.append(j)
                 pix_pa.append(pa_delta * j)
                 pix_r_inner.append(radial_grid[k])
                 pix_r_outer.append(radial_grid[k + 1])
                 pix_r_mid.append(0.5 * (radial_grid[k + 1] + radial_grid[k]))
 
-        print n_pixels, len(pix_area)
         assert len(pix_id) == n_pixels
         assert len(pix_area) == n_pixels
 
         t = Table((pix_id, pix_pa, pix_r_mid, pix_r_inner, pix_r_outer,
                    pix_area),
-                  names=('ID', 'PA', "R_mid", 'R_inner', 'R_outer', 'area'))
+                  names=('ID', 'W_ID', 'PA', "R_kpc", 'R_inner', 'R_outer',
+                         'area'))
         self.pixel_table = t
 
     @staticmethod
