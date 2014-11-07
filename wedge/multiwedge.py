@@ -120,6 +120,11 @@ class MultiWedge(object):
         # count area of each bin
         s = np.where(self.segmap >= 0)
         pix_count = np.bincount(self.segmap[s].flatten())
+        if pix_count.shape[0] < n_pixels:
+            pix_count = np.pad(pix_count,
+                               (0, n_pixels - pix_count.shape[0]),
+                               mode='constant',
+                               constant_values=(0.,))
 
         A = self._pixel_scale()
         pix_area = pix_count * A
@@ -142,6 +147,9 @@ class MultiWedge(object):
                 pix_r_inner.append(radial_grid[k])
                 pix_r_outer.append(radial_grid[k + 1])
                 pix_r_mid.append(0.5 * (radial_grid[k + 1] + radial_grid[k]))
+
+        print "len(pix_id)", len(pix_id)
+        print "len(pix_area)", len(pix_area)
 
         assert len(pix_id) == n_pixels
         assert len(pix_area) == n_pixels
