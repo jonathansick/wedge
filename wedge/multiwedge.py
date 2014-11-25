@@ -156,8 +156,8 @@ class MultiWedge(object):
 
         t = Table((pix_id, wedge_id, pix_pa, pix_r_mid,
                    pix_r_inner, pix_r_outer, pix_area),
-                  names=('ID', 'W_ID', 'PA', "R_kpc", 'R_inner', 'R_outer',
-                         'area'))
+                  names=('ID', 'W_ID', 'phi', "R_sky",
+                         'R_sky_inner', 'R_sky_outer', 'area'))
         self.pixel_table = t
 
     @staticmethod
@@ -213,7 +213,7 @@ class MultiWedge(object):
         s = np.where(obj_phi < 0.)[0]
         obj_phi[s] = Angle(2. * np.pi, unit=u.rad) + obj_phi[s]
 
-        return obj_dist, obj_phi
+        return obj_dist, obj_phi, sky_radius.arcsec
 
     def _pixel_scale(self):
         if 'CDELT' in self.ref_header:
