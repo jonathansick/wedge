@@ -43,12 +43,13 @@ class MultiWedge(object):
         x_indices_flat = xindices.flatten()
         ra, dec = self.ref_wcs.all_pix2world(x_indices_flat, y_indices_flat, 0)
         coords = SkyCoord(ra, dec, "icrs", unit="deg")
-        pixel_R, pixel_PA = self.correct_rgc(coords,
-                                             coord0,
-                                             pa0,
-                                             incl0,
-                                             d0)
+        pixel_R, pixel_PA, sky_radius = self.correct_rgc(coords,
+                                                         coord0,
+                                                         pa0,
+                                                         incl0,
+                                                         d0)
         self.image_r = pixel_R.kpc.reshape(*shape)
+        self.image_sky_r = sky_radius.reshape(*shape)  # arcsec units
         self.image_pa = pixel_PA.deg.reshape(*shape)
 
         # Make an image of position angle on sky
@@ -136,6 +137,7 @@ class MultiWedge(object):
         pix_r_inner = [0.]
         pix_r_outer = [radial_grid[0]]
         pix_r_mid = [0.]
+        sky_r = [0]
 
         i = 0
         for j in xrange(n_wedges):
@@ -147,6 +149,8 @@ class MultiWedge(object):
                 pix_r_inner.append(radial_grid[k])
                 pix_r_outer.append(radial_grid[k + 1])
                 pix_r_mid.append(0.5 * (radial_grid[k + 1] + radial_grid[k]))
+                pixel_sel = np.where(self.segmap == i)
+                sky_r.append(self.image_sky_r[pixel_sel].flatten().mean())
 
         print "len(pix_id)", len(pix_id)
         print "len(pix_area)", len(pix_area)
@@ -155,9 +159,10 @@ class MultiWedge(object):
         assert len(pix_area) == n_pixels
 
         t = Table((pix_id, wedge_id, pix_pa, pix_r_mid,
-                   pix_r_inner, pix_r_outer, pix_area),
-                  names=('ID', 'W_ID', 'phi', "R_sky",
-                         'R_sky_inner', 'R_sky_outer', 'area'))
+                   pix_r_inner, pix_r_outer, pix_area, sky_r),
+                  names=('ID', 'W_ID', 'phi', "R_maj",
+                         'R_maj_inner', 'R_maj_outer', 'area',
+                         'R_sky'))
         self.pixel_table = t
 
     @staticmethod
