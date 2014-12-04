@@ -10,9 +10,11 @@ cover the entire galaxy disk.
 import astropy.io.fits as fits
 from astropy.table import Table
 from astropy.wcs import WCS
-from astropy.coordinates import Distance, Angle, SkyCoord
 from astropy import units as u
+from astropy.coordinates import Angle, SkyCoord
 import numpy as np
+
+from .galaxycoords import galaxy_coords
 
 
 class MultiWedge(object):
@@ -43,11 +45,11 @@ class MultiWedge(object):
         x_indices_flat = xindices.flatten()
         ra, dec = self.ref_wcs.all_pix2world(x_indices_flat, y_indices_flat, 0)
         coords = SkyCoord(ra, dec, "icrs", unit="deg")
-        pixel_R, pixel_PA, sky_radius = self.correct_rgc(coords,
-                                                         coord0,
-                                                         pa0,
-                                                         incl0,
-                                                         d0)
+        pixel_R, pixel_PA, sky_radius = galaxy_coords(coords,
+                                                      coord0,
+                                                      pa0,
+                                                      incl0,
+                                                      d0)
         self.image_r = pixel_R.kpc.reshape(*shape)
         self.image_sky_r = sky_radius.reshape(*shape)  # arcsec units
         self.image_pa = pixel_PA.deg.reshape(*shape)
@@ -164,61 +166,6 @@ class MultiWedge(object):
                          'R_maj_inner', 'R_maj_outer', 'area',
                          'R_sky'))
         self.pixel_table = t
-
-    @staticmethod
-    def correct_rgc(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
-        """Computes deprojected galactocentric distance.
-
-        Inspired by: http://idl-moustakas.googlecode.com/svn-history/
-            r560/trunk/impro/hiiregions/im_hiiregion_deproject.pro
-
-        Parameters
-        ----------
-        coord : :class:`astropy.coordinates.SkyCoord`
-            Coordinate of points to compute galactocentric distance for.
-            Can be either a single coordinate, or array of coordinates.
-        glx_ctr : :class:`astropy.coordinates.SkyCoord`
-            Galaxy center.
-        glx_PA : :class:`astropy.coordinates.Angle`
-            Position angle of galaxy disk.
-        glx_incl : :class:`astropy.coordinates.Angle`
-            Inclination angle of the galaxy disk.
-        glx_dist : :class:`astropy.coordinates.Distance`
-            Distance to galaxy.
-
-        Returns
-        -------
-        obj_dist : class:`astropy.coordinates.Distance`
-            Galactocentric distance(s) for coordinate point(s).
-        """
-        # distance from coord to glx centre
-        sky_radius = glx_ctr.separation(coord)
-        avg_dec = 0.5 * (glx_ctr.dec + coord.dec).radian
-        x = (glx_ctr.ra - coord.ra) * np.cos(avg_dec)
-        y = glx_ctr.dec - coord.dec
-        # azimuthal angle from coord to glx  -- not completely happy with this
-        phi = glx_PA - Angle('90d') \
-            + Angle(np.arctan2(y.arcsec, x.arcsec), unit=u.rad)
-
-        # convert to coordinates in rotated frame, where y-axis is galaxy major
-        # ax; have to convert to arcmin b/c can't do sqrt(x^2+y^2) when x and y
-        # are angles
-        xp = (sky_radius * np.cos(phi.radian)).arcmin
-        yp = (sky_radius * np.sin(phi.radian)).arcmin
-
-        # de-project
-        ypp = yp / np.cos(glx_incl.radian)
-        obj_radius = np.sqrt(xp ** 2 + ypp ** 2)  # in arcmin
-        obj_dist = Distance(Angle(obj_radius, unit=u.arcmin).radian * glx_dist,
-                            unit=glx_dist.unit)
-
-        # Computing PA in disk
-        # negative sign needed to get correct orientation from major axis
-        obj_phi = Angle(np.arctan2(ypp, -xp), unit=u.rad)
-        s = np.where(obj_phi < 0.)[0]
-        obj_phi[s] = Angle(2. * np.pi, unit=u.rad) + obj_phi[s]
-
-        return obj_dist, obj_phi, sky_radius.arcsec
 
     def _pixel_scale(self):
         if 'CDELT' in self.ref_header:
