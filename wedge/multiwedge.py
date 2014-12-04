@@ -136,6 +136,7 @@ class MultiWedge(object):
         pix_id = [0]
         wedge_id = [0]
         pix_pa = [0.]
+        pix_disk_phi = [0.]
         pix_r_inner = [0.]
         pix_r_outer = [radial_grid[0]]
         pix_r_mid = [0.]
@@ -153,6 +154,7 @@ class MultiWedge(object):
                 pix_r_mid.append(0.5 * (radial_grid[k + 1] + radial_grid[k]))
                 pixel_sel = np.where(self.segmap == i)
                 sky_r.append(self.image_sky_r[pixel_sel].flatten().mean())
+                pix_disk_phi.append(self.image_pa[pixel_sel].flatten().mean())
 
         print "len(pix_id)", len(pix_id)
         print "len(pix_area)", len(pix_area)
@@ -160,9 +162,9 @@ class MultiWedge(object):
         assert len(pix_id) == n_pixels
         assert len(pix_area) == n_pixels
 
-        t = Table((pix_id, wedge_id, pix_pa, pix_r_mid,
+        t = Table((pix_id, wedge_id, pix_pa, pix_disk_phi, pix_r_mid,
                    pix_r_inner, pix_r_outer, pix_area, sky_r),
-                  names=('ID', 'W_ID', 'phi', "R_maj",
+                  names=('ID', 'W_ID', 'phi_sky', 'phi_disk', "R_maj",
                          'R_maj_inner', 'R_maj_outer', 'area',
                          'R_sky'))
         self.pixel_table = t
