@@ -6,7 +6,7 @@ from astropy.coordinates import Distance, Angle
 from astropy import units as u
 
 
-def correct_rgc(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
+def galaxy_coords(coord, glx_ctr, glx_PA, glx_incl, glx_dist):
     """Computes deprojected galactocentric distance.
 
     Inspired by: http://idl-moustakas.googlecode.com/svn-history/

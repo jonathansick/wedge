@@ -12,7 +12,7 @@ from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
 import numpy as np
 
-from .galaxycoords import galaxy_coords
+from galaxycoords import galaxy_coords
 
 
 class PixelSegmap(object):
