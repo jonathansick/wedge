@@ -37,7 +37,8 @@ class PixelSegmap(object):
         self._make_segmap()
 
     def _map_pixel_coordinates(self, coord0, d0, incl0, pa0):
-        shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS2'])
+        shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS1'])
+        print "ref shape", shape
         yindices, xindices = np.mgrid[0:shape[0], 0:shape[1]]
         self.y_indices_flat = yindices.flatten()
         self.x_indices_flat = xindices.flatten()
@@ -70,13 +71,14 @@ class PixelSegmap(object):
 
     def _make_pixel_table(self):
         # filter out bad pixels
+        print "flagmap shape", self.flagmap.shape
         s = np.where(self.flagmap.flatten() == 1)[0]
         pix_id = np.arange(len(s), dtype=np.int)
         area = np.ones(len(s), dtype=np.float) * self.pixel_scale
-        t = Table((pix_id, self.x_indices_flat, self.y_indices_flat,
-                   self.ra, self.dec,
-                   self.image_sky_pa, self.image_pa,
-                   self.pixel_R, self.image_sky_r,
+        t = Table((pix_id, self.x_indices_flat[s], self.y_indices_flat[s],
+                   self.ra[s], self.dec[s],
+                   self.image_sky_pa[s], self.image_pa[s],
+                   self.pixel_R[s], self.image_sky_r[s],
                    area),
                   names=('ID', 'pixel_x', 'pixel_y',
                          'ra', 'dec',
@@ -86,7 +88,7 @@ class PixelSegmap(object):
         self.pixel_table = t
 
     def _make_segmap(self):
-        shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS2'])
+        shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS1'])
         self.segmap = np.empty(shape, dtype=np.int)
         self.segmap.fill(-1)
         x = self.pixel_table['pixel_x']
