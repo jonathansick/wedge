@@ -71,8 +71,7 @@ class PixelSegmap(object):
 
     def _make_pixel_table(self):
         # filter out bad pixels
-        print "flagmap shape", self.flagmap.shape
-        s = np.where(self.flagmap.flatten() == 1)[0]
+        s = np.where(self.flagmap.flatten() == 0)[0]
         pix_id = np.arange(len(s), dtype=np.int)
         area = np.ones(len(s), dtype=np.float) * self.pixel_scale
         t = Table((pix_id, self.x_indices_flat[s], self.y_indices_flat[s],
