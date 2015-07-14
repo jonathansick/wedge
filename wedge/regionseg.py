@@ -10,6 +10,7 @@ from matplotlib.path import Path
 
 # from astropy.wcs import WCS
 from astropy.table import Table
+from astropy.utils.console import ProgressBar
 
 from .pixelseg import PixelSegmap
 
@@ -43,28 +44,30 @@ class RegionSegmap(PixelSegmap):
             dt += [(n, t[0]) for n, t in metadata.dtype.fields.iteritems()]
         t = np.empty(len(regions), dtype=np.dtype(dt))
 
-        for i, region in enumerate(regions):
-            region_path = Path(region)
-            in_poly = region_path.contains_points(points)
-            s = np.where(in_poly == True)[0]  # NOQA
+        with ProgressBar(len(regions)) as pbar:
+            for i, region in enumerate(regions):
+                region_path = Path(region)
+                in_poly = region_path.contains_points(points)
+                s = np.where(in_poly == True)[0]  # NOQA
 
-            # Paint the segmap
-            self.segmap[self.y_indices_flat[s], self.x_indices_flat[s]] = i
+                # Paint the segmap
+                self.segmap[self.y_indices_flat[s], self.x_indices_flat[s]] = i
 
-            area = float(len(s)) * self.pixel_scale ** 2.
+                area = float(len(s)) * self.pixel_scale ** 2.
 
-            # Compute the mean centroid coordinate properties of each patch
-            t['ID'][i] = i
-            t['ra'][i] = self.ra[s].mean()
-            t['dec'][i] = self.dec[s].mean()
-            t['phi_sky'][i] = self.image_sky_pa[s].mean()
-            t['phi_disk'][i] = self.image_pa[s].mean()
-            t['R_maj'][i] = self.pixel_R[s].mean()
-            t['R_sky'][i] = self.image_sky_r[s].mean()
-            t['area'][i] = area
-            if metadata is not None:
-                for n in metadata.dtype.names:
-                    print n, i, metadata[n][i]
-                    t[n][i] = metadata[n][i]
+                # Compute the mean centroid coordinate properties of each patch
+                t['ID'][i] = i
+                t['ra'][i] = self.ra[s].mean()
+                t['dec'][i] = self.dec[s].mean()
+                t['phi_sky'][i] = self.image_sky_pa[s].mean()
+                t['phi_disk'][i] = self.image_pa[s].mean()
+                t['R_maj'][i] = self.pixel_R[s].mean()
+                t['R_sky'][i] = self.image_sky_r[s].mean()
+                t['area'][i] = area
+                if metadata is not None:
+                    for n in metadata.dtype.names:
+                        print n, i, metadata[n][i]
+                        t[n][i] = metadata[n][i]
+                pbar.update()
 
         self.pixel_table = Table(t)
