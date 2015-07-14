@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib.path import Path
 
 # from astropy.wcs import WCS
+from astropy.table import Table
 
 from .pixelseg import PixelSegmap
 
@@ -17,12 +18,6 @@ class RegionSegmap(PixelSegmap):
     """Make a pixel segmentation table with regions defined by polygons."""
     def __init__(self, ref_header, flagmap, pixel_scale):
         super(RegionSegmap, self).__init__(ref_header, flagmap, pixel_scale)
-        # self.ref_header = ref_header
-        # self.flagmap = flagmap
-        # self.ref_wcs = WCS(ref_header)
-        # self.pixel_scale = pixel_scale  # TODO get from image or WCS
-        # self.pixel_table = None
-        # self.segmap = None
 
     def segment(self, regions, coord0, d0, incl0, pa0, metadata=None):
         """
@@ -33,7 +28,6 @@ class RegionSegmap(PixelSegmap):
         """
         self._map_pixel_coordinates(coord0, d0, incl0, pa0)
         self._make_segmap(regions, metadata=metadata)
-        self._make_pixel_table()
 
     def _make_segmap(self, regions, metadata=None):
         shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS1'])
@@ -46,25 +40,18 @@ class RegionSegmap(PixelSegmap):
               ('phi_sky', float), ('phi_disk', float),
               ('R_maj', float), ('R_sky', float), ('area', float)]
         if metadata is not None:
-            dt += [(n, t) for n, t in metadata.dtype.fields.iteritems()]
+            dt += [(n, t[0]) for n, t in metadata.dtype.fields.iteritems()]
         t = np.empty(len(regions), dtype=np.dtype(dt))
 
-        print "points", points
         for i, region in enumerate(regions):
             region_path = Path(region)
             in_poly = region_path.contains_points(points)
-            print "points.shape", points.shape
-            print "len(in_poly)", len(in_poly)
-            print "region", region
             s = np.where(in_poly == True)[0]  # NOQA
-            print "len(s)", len(s)
-            print "in_poly", in_poly
 
             # Paint the segmap
             self.segmap[self.y_indices_flat[s], self.x_indices_flat[s]] = i
 
             area = float(len(s)) * self.pixel_scale ** 2.
-            print "area", s, self.pixel_scale, area
 
             # Compute the mean centroid coordinate properties of each patch
             t['ID'][i] = i
@@ -77,6 +64,7 @@ class RegionSegmap(PixelSegmap):
             t['area'][i] = area
             if metadata is not None:
                 for n in metadata.dtype.names:
+                    print n, i, metadata[n][i]
                     t[n][i] = metadata[n][i]
 
-        self.pixel_table = t
+        self.pixel_table = Table(t)
