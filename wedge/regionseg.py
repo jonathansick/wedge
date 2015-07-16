@@ -66,7 +66,6 @@ class RegionSegmap(PixelSegmap):
                 t['area'][i] = area
                 if metadata is not None:
                     for n in metadata.dtype.names:
-                        print n, i, metadata[n][i]
                         t[n][i] = metadata[n][i]
                 pbar.update()
 
