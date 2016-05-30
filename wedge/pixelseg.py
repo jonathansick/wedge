@@ -17,12 +17,20 @@ from galaxycoords import galaxy_coords
 
 class PixelSegmap(object):
     """Make a pixel segmentation table if each pixel its own segmentation."""
-    def __init__(self, ref_header, flagmap, pixel_scale):
+    def __init__(self, ref_header, flagmap=None, pixel_scale=None):
         super(PixelSegmap, self).__init__()
         self.ref_header = ref_header
         self.flagmap = flagmap
         self.ref_wcs = WCS(ref_header)
-        self.pixel_scale = pixel_scale  # TODO get form image or WCS
+        if pixel_scale is None:
+            if 'CDELT2' in ref_header:
+                s = ref_header['CDELT2'] * 3600.
+            else:
+                s = np.sqrt(ref_header['CD1_1'] ** 2. +
+                            ref_header['CD1_2'] ** 2.) * 3600.
+            self.pixel_scale = float(s)
+        else:
+            self.pixel_scale = pixel_scale
         self.pixel_table = None
         self.segmap = None
 
@@ -58,8 +66,8 @@ class PixelSegmap(object):
         # TODO put into galaxy_coords?
         delta_ra = coords.ra - coord0.ra
         P = Angle(np.arctan2(np.sin(delta_ra.rad),
-                             np.cos(coord0.dec.rad) * np.tan(coords.dec.rad)
-                             - np.sin(coord0.dec.rad) * np.cos(delta_ra.rad)),
+                             np.cos(coord0.dec.rad) * np.tan(coords.dec.rad) -
+                             np.sin(coord0.dec.rad) * np.cos(delta_ra.rad)),
                   unit=u.rad)
         # Reset wrap-around range
         s = np.where(P < 0.)[0]
@@ -71,7 +79,11 @@ class PixelSegmap(object):
 
     def _make_pixel_table(self):
         # filter out bad pixels
-        s = np.where(self.flagmap.flatten() == 0)[0]
+        if self.flagmap is not None:
+            s = np.where(self.flagmap.flatten() == 0)[0]
+        else:
+            s = np.ones(self.ref_header['NAXIS1'] * self.ref_header['NAXIS2'],
+                        dtype=np.int)
         pix_id = np.arange(len(s), dtype=np.int)
         area = np.ones(len(s), dtype=np.float) * self.pixel_scale
         t = Table((pix_id, self.x_indices_flat[s], self.y_indices_flat[s],
