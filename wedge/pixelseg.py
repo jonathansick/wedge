@@ -46,7 +46,6 @@ class PixelSegmap(object):
 
     def _map_pixel_coordinates(self, coord0, d0, incl0, pa0):
         shape = (self.ref_header['NAXIS2'], self.ref_header['NAXIS1'])
-        print "ref shape", shape
         yindices, xindices = np.mgrid[0:shape[0], 0:shape[1]]
         self.y_indices_flat = yindices.flatten()
         self.x_indices_flat = xindices.flatten()
@@ -82,8 +81,9 @@ class PixelSegmap(object):
         if self.flagmap is not None:
             s = np.where(self.flagmap.flatten() == 0)[0]
         else:
-            s = np.ones(self.ref_header['NAXIS1'] * self.ref_header['NAXIS2'],
-                        dtype=np.int)
+            s = np.arange(self.ref_header['NAXIS1'] *
+                          self.ref_header['NAXIS2'],
+                          dtype=np.int)
         pix_id = np.arange(len(s), dtype=np.int)
         area = np.ones(len(s), dtype=np.float) * self.pixel_scale
         t = Table((pix_id, self.x_indices_flat[s], self.y_indices_flat[s],
