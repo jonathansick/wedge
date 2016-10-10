@@ -17,8 +17,11 @@ from .pixelseg import PixelSegmap
 
 class RegionSegmap(PixelSegmap):
     """Make a pixel segmentation table with regions defined by polygons."""
-    def __init__(self, ref_header, flagmap, pixel_scale):
-        super(RegionSegmap, self).__init__(ref_header, flagmap, pixel_scale)
+    def __init__(self, ref_header, flagmap=None, pixel_scale=None):
+        super(RegionSegmap, self).__init__(
+            ref_header,
+            flagmap=pixel_scale,
+            pixel_scale=pixel_scale)
 
     def segment(self, regions, coord0, d0, incl0, pa0, metadata=None):
         """
