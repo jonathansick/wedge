@@ -85,7 +85,7 @@ class PixelSegmap(object):
                           self.ref_header['NAXIS2'],
                           dtype=np.int)
         pix_id = np.arange(len(s), dtype=np.int)
-        area = np.ones(len(s), dtype=np.float) * self.pixel_scale
+        area = np.ones(len(s), dtype=np.float) * self.pixel_scale ** 2.
         t = Table((pix_id, self.x_indices_flat[s], self.y_indices_flat[s],
                    self.ra[s], self.dec[s],
                    self.image_sky_pa[s], self.image_pa[s],
